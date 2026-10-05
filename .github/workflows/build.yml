@@ -9,20 +9,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Extract Momentum project
         run: |
-          unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v10_build_ready.zip'
-          rm -rf Momentum_v10
-          mkdir Momentum_v10
-          unzip -q -o Momentum_v10_build_ready.zip -d Momentum_v10
+          unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v15_build_ready.zip'
+          rm -rf Momentum_v15
+          mkdir Momentum_v15
+          unzip -q -o Momentum_v15_build_ready.zip -d Momentum_v15
 
       - name: Configure build memory
         run: |
-          cat > Momentum_v10/gradle.properties <<'EOF2'
+          cat > Momentum_v15/gradle.properties <<'EOF2'
           android.useAndroidX=true
           org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
           kotlin.daemon.jvm.options=-Xmx1536m
@@ -42,11 +43,11 @@ jobs:
           gradle-version: '8.10'
 
       - name: Build APK
-        working-directory: Momentum_v10
+        working-directory: Momentum_v15
         run: gradle :app:assembleDebug --stacktrace --no-daemon --max-workers=2
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Momentum-v1.0-debug-apk
-          path: Momentum_v10/app/build/outputs/apk/debug/app-debug.apk
+          name: Momentum-v1.5-debug-apk
+          path: Momentum_v15/app/build/outputs/apk/debug/app-debug.apk
