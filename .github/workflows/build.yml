@@ -1,6 +1,9 @@
 name: Build Momentum APK
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -28,18 +31,19 @@ jobs:
           p = Path("Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt")
           s = p.read_text()
 
-          s = s.replace(
-              "import androidx.room.Entity",
-              "import androidx.room.Entity\nimport androidx.room.PrimaryKey"
-          )
+          if "import androidx.room.PrimaryKey" not in s:
+              s = s.replace(
+                  "import androidx.room.Entity",
+                  "import androidx.room.Entity\nimport androidx.room.PrimaryKey"
+              )
 
-          s = s.replace(
-              "data class Habit(val id:Long=0,",
-              "data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,"
-          )
+          if "@PrimaryKey" not in s:
+              s = s.replace(
+                  "data class Habit(val id:Long=0,",
+                  "data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,"
+              )
 
           p.write_text(s)
-          print(p.read_text())
           PY
 
       - name: Set Java 17 targets
@@ -50,7 +54,7 @@ jobs:
           p = Path("Momentum_v8/app/build.gradle.kts")
           s = p.read_text()
 
-          if "compileOptions" not in s:
+          if "sourceCompatibility = JavaVersion.VERSION_17" not in s:
               s = s.replace(
                   "android {",
                   """android {
