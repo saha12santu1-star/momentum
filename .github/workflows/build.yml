@@ -17,6 +17,9 @@ jobs:
           unzip -q -o Momentum_v8_build_ready.zip
           ls -la Momentum_v8
 
+      - name: Enable AndroidX
+        run: echo "android.useAndroidX=true" >> Momentum_v8/gradle.properties
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
