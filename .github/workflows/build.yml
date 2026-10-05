@@ -13,8 +13,8 @@ jobs:
 
       - name: Extract Momentum project
         run: |
-          unzip -q Momentum_github_cloud_build.zip
-          unzip -q Momentum_v8_build_ready.zip
+          unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v8_build_ready.zip'
+          unzip -q -o Momentum_v8_build_ready.zip
           ls -la Momentum_v8
 
       - name: Set up Java
