@@ -12,15 +12,39 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Extract project
+        shell: bash
         run: |
+          set -e
           unzip -q -o Momentum_github_cloud_build.zip
-          unzip -q -o Momentum_v15_build_ready.zip
 
-      - name: Configure memory
+          BUILD_ZIP=$(find . -maxdepth 2 -type f -name '*_build_ready.zip' | head -n 1)
+          if [ -z "$BUILD_ZIP" ]; then
+            echo "No *_build_ready.zip found"
+            exit 1
+          fi
+
+          echo "Using project archive: $BUILD_ZIP"
+          unzip -q -o "$BUILD_ZIP"
+
+          PROJECT_DIR=$(find . -type f -name 'settings.gradle.kts' -printf '%h\n' | head -n 1)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "No Gradle project found"
+            exit 1
+          fi
+
+          PROJECT_DIR="${PROJECT_DIR#./}"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Detected project: $PROJECT_DIR"
+
+      - name: Configure build
         run: |
-          echo "android.useAndroidX=true" >> Momentum_v15/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> Momentum_v15/gradle.properties
-          echo "org.gradle.workers.max=2" >> Momentum_v15/gradle.properties
+          cat > "$PROJECT_DIR/gradle.properties" <<'EOF2'
+          android.useAndroidX=true
+          org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
+          kotlin.daemon.jvm.options=-Xmx1536m
+          org.gradle.workers.max=2
+          org.gradle.parallel=false
+          EOF2
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -34,11 +58,11 @@ jobs:
           gradle-version: '8.10'
 
       - name: Build APK
-        working-directory: Momentum_v15
-        run: gradle :app:assembleDebug --no-daemon --max-workers=2
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: gradle :app:assembleDebug --stacktrace --no-daemon --max-workers=2
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Momentum-debug-apk
-          path: Momentum_v15/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
