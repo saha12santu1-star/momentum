@@ -14,96 +14,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Momentum project
+      - name: Extract project
         run: |
           unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v8_build_ready.zip'
           unzip -q -o Momentum_v8_build_ready.zip
 
       - name: Enable AndroidX
-        run: |
-          echo "android.useAndroidX=true" >> Momentum_v8/gradle.properties
-
-      - name: Use stable Biometric library
-        run: |
-          sed -i 's/androidx.biometric:biometric:1.2.0-alpha05/androidx.biometric:biometric:1.1.0/' Momentum_v8/app/build.gradle.kts
-
-      - name: Fix biometric helper
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("Momentum_v8/app/src/main/java/com/momentum/app/SecurityAndBackup.kt")
-
-          p.write_text('''package com.momentum.app
-
-import android.content.Context
-import androidx.activity.ComponentActivity
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
-import androidx.core.content.ContextCompat
-
-object BiometricGate {
-
-    fun available(context: Context): Boolean =
-        BiometricManager.from(context).canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG
-        ) == BiometricManager.BIOMETRIC_SUCCESS
-
-    fun authenticate(activity: ComponentActivity, onSuccess: () -> Unit) {
-        if (!available(activity)) {
-            onSuccess()
-            return
-        }
-
-        val executor = ContextCompat.getMainExecutor(activity)
-
-        val callback = object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(
-                result: BiometricPrompt.AuthenticationResult
-            ) {
-                super.onAuthenticationSucceeded(result)
-                onSuccess()
-            }
-        }
-
-        val prompt = BiometricPrompt(
-            activity as androidx.fragment.app.FragmentActivity,
-            executor,
-            callback
-        )
-
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock Momentum")
-            .setSubtitle("Use your device biometric to continue")
-            .setNegativeButtonText("Cancel")
-            .build()
-
-        prompt.authenticate(promptInfo)
-    }
-}
-
-object BackupFormat {
-    fun metadata(): org.json.JSONObject = org.json.JSONObject()
-        .put("format", "momentum-json")
-        .put("version", 1)
-        .put("description", "Local Momentum habit data backup")
-}
-''')
-          PY
+        run: echo "android.useAndroidX=true" >> Momentum_v8/gradle.properties
 
       - name: Fix Room Primary Key
         run: |
           sed -i '/import androidx.room.Entity/a import androidx.room.PrimaryKey' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
           sed -i 's/data class Habit(val id:Long=0,/data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,/' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
 
-      - name: Set Java 17 targets
+      - name: Set Java 17
         run: |
           sed -i '/android {/a\
               compileOptions {\
                   sourceCompatibility = JavaVersion.VERSION_17\
                   targetCompatibility = JavaVersion.VERSION_17\
               }\
-              \
               kotlinOptions {\
                   jvmTarget = "17"\
               }' Momentum_v8/app/build.gradle.kts
