@@ -17,9 +17,7 @@ jobs:
       - name: Extract Momentum project
         run: |
           unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v15_build_ready.zip'
-          rm -rf Momentum_v15
-          mkdir Momentum_v15
-          unzip -q -o Momentum_v15_build_ready.zip -d Momentum_v15
+          unzip -q -o Momentum_v15_build_ready.zip
 
       - name: Configure build memory
         run: |
@@ -43,11 +41,3 @@ jobs:
           gradle-version: '8.10'
 
       - name: Build APK
-        working-directory: Momentum_v15
-        run: gradle :app:assembleDebug --stacktrace --no-daemon --max-workers=2
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Momentum-v1.5-debug-apk
-          path: Momentum_v15/app/build/outputs/apk/debug/app-debug.apk
