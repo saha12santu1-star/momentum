@@ -9,34 +9,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract project
+      - name: Extract Momentum project
         run: |
-          unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v8_build_ready.zip'
-          unzip -q -o Momentum_v8_build_ready.zip
+          unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v9_build_ready.zip'
+          rm -rf Momentum_v9
+          mkdir Momentum_v9
+          unzip -q -o Momentum_v9_build_ready.zip -d Momentum_v9
 
       - name: Enable AndroidX
-        run: echo "android.useAndroidX=true" >> Momentum_v8/gradle.properties
+        run: echo "android.useAndroidX=true" >> Momentum_v9/gradle.properties
 
-      - name: Fix Room Primary Key
+      - name: Fix Room primary key
         run: |
-          sed -i '/import androidx.room.Entity/a import androidx.room.PrimaryKey' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
-          sed -i 's/data class Habit(val id:Long=0,/data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,/' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
+          sed -i '/import androidx.room.Entity/a import androidx.room.PrimaryKey' Momentum_v9/app/src/main/java/com/momentum/app/Habit.kt
+          sed -i 's/data class Habit(val id:Long=0,/data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,/' Momentum_v9/app/src/main/java/com/momentum/app/Habit.kt
 
-      - name: Set Java 17
+      - name: Set Java 17 compile options
         run: |
-          sed -i '/android {/a\
-              compileOptions {\
-                  sourceCompatibility = JavaVersion.VERSION_17\
-                  targetCompatibility = JavaVersion.VERSION_17\
-              }\
-              kotlinOptions {\
-                  jvmTarget = "17"\
-              }' Momentum_v8/app/build.gradle.kts
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("Momentum_v9/app/build.gradle.kts")
+          s=p.read_text()
+          if "sourceCompatibility = JavaVersion.VERSION_17" not in s:
+              s=s.replace('android { namespace="com.momentum.app"; compileSdk=35', 'android { namespace="com.momentum.app"; compileSdk=35\n    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }\n    kotlinOptions { jvmTarget = "17" }')
+          p.write_text(s)
+          PY
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -50,11 +51,11 @@ jobs:
           gradle-version: '8.10'
 
       - name: Build APK
-        working-directory: Momentum_v8
-        run: gradle :app:assembleDebug --stacktrace
+        working-directory: Momentum_v9
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Momentum-debug-apk
-          path: Momentum_v8/app/build/outputs/apk/debug/app-debug.apk
+          name: Momentum-v0.9-debug-apk
+          path: Momentum_v9/app/build/outputs/apk/debug/app-debug.apk
