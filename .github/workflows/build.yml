@@ -33,6 +33,11 @@ jobs:
           sed -i '/import androidx.room.Entity/a import androidx.room.PrimaryKey' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
           sed -i 's/data class Habit(val id:Long=0,/data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,/' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
 
+      - name: Fix MainActivity TextField
+        run: |
+          sed -i '139s/it/' Momentum_v8/app/src/main/java/com/momentum/app/MainActivity.kt
+          sed -i '140s/OutlinedTextField(/OutlinedTextField(value = "", onValueChange = { }) {/' Momentum_v8/app/src/main/java/com/momentum/app/MainActivity.kt
+
       - name: Set Java 17 targets
         run: |
           sed -i '/android {/a\
