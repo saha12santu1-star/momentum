@@ -1,9 +1,6 @@
 name: Build Momentum APK
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -11,23 +8,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract Momentum project
+      - name: Extract project
         run: |
-          unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v15_build_ready.zip'
+          unzip -q -o Momentum_github_cloud_build.zip
           unzip -q -o Momentum_v15_build_ready.zip
 
-      - name: Configure build memory
+      - name: Configure memory
         run: |
-          cat > Momentum_v15/gradle.properties <<'EOF2'
-          android.useAndroidX=true
-          org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
-          kotlin.daemon.jvm.options=-Xmx1536m
-          org.gradle.workers.max=2
-          org.gradle.parallel=false
-          EOF2
+          echo "android.useAndroidX=true" >> Momentum_v15/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> Momentum_v15/gradle.properties
+          echo "org.gradle.workers.max=2" >> Momentum_v15/gradle.properties
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -41,3 +34,11 @@ jobs:
           gradle-version: '8.10'
 
       - name: Build APK
+        working-directory: Momentum_v15
+        run: gradle :app:assembleDebug --no-daemon --max-workers=2
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Momentum-debug-apk
+          path: Momentum_v15/app/build/outputs/apk/debug/app-debug.apk
