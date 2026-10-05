@@ -20,6 +20,28 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" >> Momentum_v8/gradle.properties
 
+      - name: Fix Android source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt")
+          s = p.read_text()
+
+          s = s.replace(
+              "import androidx.room.Entity",
+              "import androidx.room.Entity\nimport androidx.room.PrimaryKey"
+          )
+
+          s = s.replace(
+              "data class Habit(val id:Long=0,",
+              "data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,"
+          )
+
+          p.write_text(s)
+          print(p.read_text())
+          PY
+
       - name: Set Java 17 targets
         run: |
           python3 - <<'PY'
@@ -28,21 +50,20 @@ jobs:
           p = Path("Momentum_v8/app/build.gradle.kts")
           s = p.read_text()
 
-          s = s.replace(
-              'android { namespace="com.momentum.app"; compileSdk=35',
-              '''android {
-                  namespace="com.momentum.app"
-                  compileSdk=35
+          if "compileOptions" not in s:
+              s = s.replace(
+                  "android {",
+                  """android {
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
-                  compileOptions {
-                      sourceCompatibility = JavaVersion.VERSION_17
-                      targetCompatibility = JavaVersion.VERSION_17
-                  }
-
-                  kotlinOptions {
-                      jvmTarget = "17"
-                  }'''
-          )
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+"""
+              )
 
           p.write_text(s)
           PY
