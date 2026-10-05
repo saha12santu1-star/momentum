@@ -24,6 +24,10 @@ jobs:
         run: |
           echo "android.useAndroidX=true" >> Momentum_v8/gradle.properties
 
+      - name: Use stable Biometric library
+        run: |
+          sed -i 's/androidx.biometric:biometric:1.2.0-alpha05/androidx.biometric:biometric:1.1.0/' Momentum_v8/app/build.gradle.kts
+
       - name: Fix Room Primary Key
         run: |
           sed -i '/import androidx.room.Entity/a import androidx.room.PrimaryKey' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
