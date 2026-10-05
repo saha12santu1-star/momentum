@@ -18,7 +18,6 @@ jobs:
         run: |
           unzip -q -o Momentum_github_cloud_build.zip 'Momentum_v8_build_ready.zip'
           unzip -q -o Momentum_v8_build_ready.zip
-          ls -la Momentum_v8
 
       - name: Enable AndroidX
         run: |
@@ -28,17 +27,74 @@ jobs:
         run: |
           sed -i 's/androidx.biometric:biometric:1.2.0-alpha05/androidx.biometric:biometric:1.1.0/' Momentum_v8/app/build.gradle.kts
 
+      - name: Fix biometric helper
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("Momentum_v8/app/src/main/java/com/momentum/app/SecurityAndBackup.kt")
+
+          p.write_text('''package com.momentum.app
+
+import android.content.Context
+import androidx.activity.ComponentActivity
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+
+object BiometricGate {
+
+    fun available(context: Context): Boolean =
+        BiometricManager.from(context).canAuthenticate(
+            BiometricManager.Authenticators.BIOMETRIC_STRONG
+        ) == BiometricManager.BIOMETRIC_SUCCESS
+
+    fun authenticate(activity: ComponentActivity, onSuccess: () -> Unit) {
+        if (!available(activity)) {
+            onSuccess()
+            return
+        }
+
+        val executor = ContextCompat.getMainExecutor(activity)
+
+        val callback = object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(
+                result: BiometricPrompt.AuthenticationResult
+            ) {
+                super.onAuthenticationSucceeded(result)
+                onSuccess()
+            }
+        }
+
+        val prompt = BiometricPrompt(
+            activity as androidx.fragment.app.FragmentActivity,
+            executor,
+            callback
+        )
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock Momentum")
+            .setSubtitle("Use your device biometric to continue")
+            .setNegativeButtonText("Cancel")
+            .build()
+
+        prompt.authenticate(promptInfo)
+    }
+}
+
+object BackupFormat {
+    fun metadata(): org.json.JSONObject = org.json.JSONObject()
+        .put("format", "momentum-json")
+        .put("version", 1)
+        .put("description", "Local Momentum habit data backup")
+}
+''')
+          PY
+
       - name: Fix Room Primary Key
         run: |
           sed -i '/import androidx.room.Entity/a import androidx.room.PrimaryKey' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
           sed -i 's/data class Habit(val id:Long=0,/data class Habit(@PrimaryKey(autoGenerate=true) val id:Long=0,/' Momentum_v8/app/src/main/java/com/momentum/app/Habit.kt
-
-      - name: Fix MainActivity TextFields
-        run: |
-          sed -i '139c\        Spacer(Modifier.height(8.dp));OutlinedTextField(value=n,onValueChange={n=it},label={Text("Name")},modifier=Modifier.fillMaxWidth())' Momentum_v8/app/src/main/java/com/momentum/app/MainActivity.kt
-          sed -i '140c\        Spacer(Modifier.height(8.dp));OutlinedTextField(value=c,onValueChange={c=it},label={Text("Category")},modifier=Modifier.fillMaxWidth())' Momentum_v8/app/src/main/java/com/momentum/app/MainActivity.kt
-          sed -i '141c\        Spacer(Modifier.height(8.dp));OutlinedTextField(value=f,onValueChange={f=it},label={Text("Frequency")},modifier=Modifier.fillMaxWidth())' Momentum_v8/app/src/main/java/com/momentum/app/MainActivity.kt
-          sed -i '142c\        Spacer(Modifier.height(8.dp));OutlinedTextField(value=d,onValueChange={d=it},label={Text("Difficulty")},modifier=Modifier.fillMaxWidth())' Momentum_v8/app/src/main/java/com/momentum/app/MainActivity.kt
 
       - name: Set Java 17 targets
         run: |
