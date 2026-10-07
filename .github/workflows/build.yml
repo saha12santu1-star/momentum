@@ -67,8 +67,14 @@ jobs:
           echo "APK: $APK"
           echo "========================================"
 
-          keytool -printcert -jarfile "$APK" | grep -i "SHA1"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
 
+          echo "Using: $APKSIGNER"
+          echo ""
+
+          "$APKSIGNER" verify --print-certs "$APK"
+
+          echo ""
           echo "========================================"
 
       - name: Upload APK
