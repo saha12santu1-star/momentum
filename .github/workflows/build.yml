@@ -14,13 +14,31 @@ jobs:
       - name: Extract project
         run: |
           unzip -q -o Momentum_github_cloud_build.zip
-          unzip -q -o Momentum_v42_build_ready.zip
+
+          for ZIP in *_build_ready.zip; do
+            if [ -f "$ZIP" ]; then
+              echo "Extracting $ZIP"
+              unzip -q -o "$ZIP"
+            fi
+          done
+
+      - name: Find Android project
+        run: |
+          PROJECT_DIR=$(find . -type f -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
+
+          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
+            echo "Could not find Android project"
+            exit 1
+          fi
+
+          echo "Android project found at: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Configure memory
         run: |
-          echo "android.useAndroidX=true" >> Momentum_v42/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> Momentum_v42/gradle.properties
-          echo "org.gradle.workers.max=2" >> Momentum_v42/gradle.properties
+          echo "android.useAndroidX=true" >> "$PROJECT_DIR/gradle.properties"
+          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> "$PROJECT_DIR/gradle.properties"
+          echo "org.gradle.workers.max=2" >> "$PROJECT_DIR/gradle.properties"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -34,12 +52,12 @@ jobs:
           gradle-version: '8.10'
 
       - name: Build APK
-        working-directory: Momentum_v42
+        working-directory: ${{ env.PROJECT_DIR }}
         run: gradle :app:assembleDebug --no-daemon --max-workers=2
 
       - name: Show APK SHA-1
         run: |
-          APK="Momentum_v42/app/build/outputs/apk/debug/app-debug.apk"
+          APK="$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 
           echo "========================================"
           echo "APK: $APK"
@@ -53,4 +71,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Reflection-debug-apk
-          path: Momentum_v42/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
