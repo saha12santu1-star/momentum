@@ -24,9 +24,13 @@ jobs:
 
       - name: Find Android project
         run: |
-          PROJECT_DIR=$(find . -type f -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
+          if [ -f "settings.gradle.kts" ] || [ -f "settings.gradle" ]; then
+            PROJECT_DIR="."
+          else
+            PROJECT_DIR=$(find . -type f \( -name "settings.gradle.kts" -o -name "settings.gradle" \) -print -quit | xargs dirname)
+          fi
 
-          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
+          if [ -z "$PROJECT_DIR" ]; then
             echo "Could not find Android project"
             exit 1
           fi
